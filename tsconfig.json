@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",                  // Use ES2015+ for private fields
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,             // Needed for default imports
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["server.ts"]
+}
