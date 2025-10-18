@@ -1,42 +1,40 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            Int           @id @default(autoincrement())
-  walletAddress String        @unique
-  createdAt     DateTime      @default(now())
-  posts         Post[]
-  transactions  Transaction[]
+  id             Int             @id @default(autoincrement())
+  walletAddress  String          @unique
+  createdAt      DateTime        @default(now())
+  posts          Post[]          @relation("UserPosts")
+  transactions   Transaction[]   @relation("UserTransactions")
 }
 
 model Post {
-  id           Int           @id @default(autoincrement())
+  id           Int             @id @default(autoincrement())
   title        String
-  type         String // "profile", "paragraph", or "website"
   message      String
-  priceToken   String // "$NOLLYSPOT" or "$NOLLYWOODSPOTLIGHT"
+  type         String
+  priceToken   String
   priceAmount  Float
-  user         User          @relation(fields: [userId], references: [id])
+  user         User            @relation("UserPosts", fields: [userId], references: [id])
   userId       Int
-  createdAt    DateTime      @default(now())
-  transactions Transaction[] // 👈 Added relation to Transaction
+  createdAt    DateTime        @default(now())
+  transactions Transaction[]   @relation("PostTransactions") // ✅ FIXED
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  tokenType String
-  amount    Float
-  post      Post?    @relation(fields: [postId], references: [id])
-  postId    Int?
-  createdAt DateTime @default(now())
+  id          Int       @id @default(autoincrement())
+  tokenType   String
+  amount      Float
+  userId      Int
+  postId      Int?
+  user        User      @relation("UserTransactions", fields: [userId], references: [id])
+  post        Post?     @relation("PostTransactions", fields: [postId], references: [id])
+  createdAt   DateTime  @default(now())
 }
