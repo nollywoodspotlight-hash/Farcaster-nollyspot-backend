@@ -109,6 +109,12 @@ app.post("/pay", async (req: Request, res: Response) => {
   });
 }
 });
+
+// ✅ Health Check Route
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // ✅ Start Server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
