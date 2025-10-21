@@ -29,12 +29,15 @@ model Post {
 }
 
 model Transaction {
-  id          Int       @id @default(autoincrement())
-  tokenType   String
-  amount      Float
-  userId      Int
-  postId      Int?
-  user        User      @relation("UserTransactions", fields: [userId], references: [id])
-  post        Post?     @relation("PostTransactions", fields: [postId], references: [id])
-  createdAt   DateTime  @default(now())
+  id            Int       @id @default(autoincrement())
+  tokenType     String
+  amount        Float
+  userId        Int
+  postId        Int?
+  user          User      @relation("UserTransactions", fields: [userId], references: [id])
+  post          Post?     @relation("PostTransactions", fields: [postId], references: [id])
+  status        String    @default("completed") // 🆕 Track transaction state
+  txHash        String?   // 🆕 Hash for the original payment
+  refundTxHash  String?   // 🆕 Hash for refund transaction
+  createdAt     DateTime  @default(now())
 }

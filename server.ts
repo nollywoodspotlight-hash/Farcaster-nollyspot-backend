@@ -95,19 +95,108 @@ app.post("/pay", async (req: Request, res: Response) => {
       data: {
         userId: Number(userId),
         tokenType,
-        amount: Number(amount)
-      }
+        amount: Number(amount),
+        status: "completed",
+        txHash: tx.hash,
+      },
     });
 
     res.json({ success: true, txHash: tx.hash });
   } catch (error: any) {
-  console.error("❌ Payment error details:", error);
+    console.error("❌ Payment error details:", error);
 
-  return res.status(500).json({
-    error: "Payment failed",
-    reason: error?.message || error
-  });
+    return res.status(500).json({
+      error: "Payment failed",
+      reason: error?.message || error,
+    });
+  }
+}); 
+
+// ✅ Cancel / Refund Route
+app.post("/cancel", async (req: Request, res: Response) => {
+  try {
+    const { transactionId } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({ error: "Missing transactionId" });
+    }
+
+    // Find transaction
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: Number(transactionId) },
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    if (transaction.status === "refunded") {
+      return res.status(400).json({ error: "Transaction already refunded" });
+    }
+
+    // Platform fee setup
+    const feePercent = Number(process.env.PLATFORM_FEE_PERCENT) || 2.5;
+    const refundAmount = transaction.amount * (1 - feePercent / 100);
+
+    // ERC-20 refund setup
+    const provider = new ethers.JsonRpcProvider(process.env.PROVIDER_URL);
+    const wallet = new ethers.Wallet(process.env.MERCHANT_PRIVATE_KEY!, provider);
+
+    const erc20ABI = ["function transfer(address to, uint256 value) public returns (bool)"];
+
+    const tokenAddress =
+      transaction.tokenType === "$NOLLYSPOT"
+        ? process.env.NOLLYSPOT_TOKEN_ADDRESS
+        : process.env.NOLLYWOODSPOT_TOKEN_ADDRESS;
+
+    if (!tokenAddress) {
+  return res.status(400).json({ error: "Missing or invalid token address" });
 }
+const tokenContract = new ethers.Contract(tokenAddress as string, erc20ABI, wallet);
+    const decimals = Number(process.env.TOKEN_DECIMALS) || 18;
+    const amountToRefund = ethers.parseUnits(refundAmount.toString(), decimals);
+
+    // Execute refund
+    const refundTx = await tokenContract.transfer(
+      process.env.USER_REFUND_ADDRESS, // Placeholder for now — will be user’s wallet later
+      amountToRefund
+    );
+    await refundTx.wait();
+
+    // Update DB
+    const updated = await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: "refunded",
+        refundTxHash: refundTx.hash,
+      },
+    });
+
+    res.json({
+      success: true,
+      refundAmount,
+      refundTxHash: refundTx.hash,
+      message: `Refund successful minus ${feePercent}% fee.`,
+    });
+  } catch (error: any) {
+    console.error("❌ Refund error:", error);
+    res.status(500).json({
+      error: "Refund failed",
+      reason: error?.message || error,
+    });
+  }
+});
+// ✅ Get All Transactions
+app.get("/transactions", async (req: Request, res: Response) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(transactions);
+  } catch (error) {
+    console.error("❌ Error fetching transactions:", error);
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
 });
 
 // ✅ Health Check Route
