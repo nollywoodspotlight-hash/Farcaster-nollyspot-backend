@@ -101,6 +101,10 @@ app.post("/pay", async (req, res) => {
 // ✅ Cancel / Refund Route
 app.post("/cancel", async (req, res) => {
     try {
+        // 🧩 Validate request body early
+        if (!req.body || typeof req.body !== "object") {
+            return res.status(400).json({ error: "Invalid or missing JSON body" });
+        }
         const { transactionId } = req.body;
         if (!transactionId) {
             return res.status(400).json({ error: "Missing transactionId" });
