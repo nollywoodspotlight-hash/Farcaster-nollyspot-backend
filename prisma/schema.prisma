@@ -36,8 +36,8 @@ model Transaction {
   postId        Int?
   user          User      @relation("UserTransactions", fields: [userId], references: [id])
   post          Post?     @relation("PostTransactions", fields: [postId], references: [id])
-  status        String    @default("completed") // 🆕 Track transaction state
-  txHash        String?   // 🆕 Hash for the original payment
-  refundTxHash  String?   // 🆕 Hash for refund transaction
+  status        String    @default("completed")
+  txHash        String?
+  refundTxHash  String?
   createdAt     DateTime  @default(now())
 }
